@@ -264,6 +264,11 @@ class DocumentManager : public QObject
         bool loadFile(const QString& filePath);
 
         /*
+         * Create a empty file with the passed name.
+         */
+        bool createEmptyFile(const QString& filePath);
+
+        /*
          * Sets the file path for the document, such that the file will be
          * monitored for external changes made to it, and the display name
          * for the document updated.

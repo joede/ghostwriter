@@ -70,6 +70,11 @@ class TextDocument : public QTextDocument
         bool isReadOnly() const;
 
         /**
+         * Returns true if the document is already available on the disc.
+         */
+        bool existsOnDisk() const;
+
+        /**
          * Sets whether the document has read only permissions.
          */
         void setReadOnly(bool readOnly);

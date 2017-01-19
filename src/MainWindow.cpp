@@ -87,6 +87,7 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
     : QMainWindow(parent)
 {
     QString fileToOpen;
+
     setWindowIcon(QIcon(":/resources/images/ghostwriter.svg"));
     this->setObjectName("mainWindow");
     this->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -270,8 +271,8 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
         }
         else
         {
-            qCritical("File specified on command line does not exist.");
-            exit(-1);
+            // we allow non existing file too.
+            fileToOpen = filePath;
         }
     }
 

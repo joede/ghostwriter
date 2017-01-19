@@ -57,8 +57,15 @@ void TextDocument::setFilePath(const QString& path)
     if (!path.isNull() && !path.isEmpty())
     {
         QFileInfo fileInfo(path);
-        filePath = fileInfo.absoluteFilePath();
-        displayName = fileInfo.fileName();
+        if (fileInfo.exists())
+        {
+            filePath = fileInfo.absoluteFilePath();
+            displayName = fileInfo.fileName();
+        }
+        else
+        {
+            // TODO: how do I get the basename and full path of an not existing file?
+        }
     }
     else
     {
@@ -71,14 +78,23 @@ void TextDocument::setFilePath(const QString& path)
     emit filePathChanged();
 }
 
+/* Check if a file is "new". We call a file "new", if the given path is empty, or the referenced
+ * file (path) does not exist.
+ */
 bool TextDocument::isNew() const
 {
-    return filePath.isNull() || filePath.isEmpty();
+    return filePath.isNull() || filePath.isEmpty() || !existsOnDisk();
 }
 
 bool TextDocument::isReadOnly() const
 {
     return readOnlyFlag;
+}
+
+bool TextDocument::existsOnDisk() const
+{
+    QFileInfo fileInfo(filePath);
+    return fileInfo.exists();
 }
 
 void TextDocument::setReadOnly(bool readOnly)

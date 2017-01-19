@@ -169,7 +169,7 @@ void DocumentManager::open(const QString& filePath)
         {
             QFileInfo fileInfo(path);
 
-            if (!fileInfo.isReadable())
+            if (document->existsOnDisk() && !fileInfo.isReadable())
             {
                 MessageBoxHelper::critical
                 (
@@ -185,36 +185,50 @@ void DocumentManager::open(const QString& filePath)
             int oldCursorPosition = editor->textCursor().position();
             bool oldFileWasNew = document->isNew();
 
-            if (!loadFile(path))
+            if (document->existsOnDisk())
             {
-                // The error dialog should already have been displayed
-                // in loadFile().
-                //
-                return;
-            }
-            else if (oldFilePath == document->getFilePath())
-            {
-                editor->navigateDocument(oldCursorPosition);
-            }
-            else if (fileHistoryEnabled)
-            {
-                if (!oldFileWasNew)
+                // load the file only if it exists on the disk.
+                if (!loadFile(path))
                 {
-                    DocumentHistory history;
-                    history.add
-                    (
-                        oldFilePath,
-                        oldCursorPosition
-                    );
+                    // The error dialog should already have been displayed
+                    // in loadFile().
+                    //
+                    return;
                 }
+                else if (oldFilePath == document->getFilePath())
+                {
+                    editor->navigateDocument(oldCursorPosition);
+                }
+                else if (fileHistoryEnabled)
+                {
+                    if (!oldFileWasNew)
+                    {
+                        DocumentHistory history;
+                        history.add
+                                (
+                                    oldFilePath,
+                                    oldCursorPosition
+                                    );
+                    }
 
-                // Always emit a documentClosed() signal, even if the document
-                // was new and untitled.  This is so that if a file from the
-                // displayed history is being loaded, its path will be
-                // guaranteed to be removed from the "Open Recent" file list
-                // displayed to the user (because it's already opened).
-                //
-                emit documentClosed();
+                    // Always emit a documentClosed() signal, even if the document
+                    // was new and untitled.  This is so that if a file from the
+                    // displayed history is being loaded, its path will be
+                    // guaranteed to be removed from the "Open Recent" file list
+                    // displayed to the user (because it's already opened).
+                    //
+                    emit documentClosed();
+                }
+            }
+            else
+            {
+                if (!createEmptyFile(path))
+                {
+                    // The error dialog should already have been displayed
+                    // in loadFile().
+                    //
+                    return;
+                }
             }
         }
     }
@@ -706,6 +720,22 @@ bool DocumentManager::loadFile(const QString& filePath)
     return true;
 }
 
+bool DocumentManager::createEmptyFile(const QString &filePath)
+{
+    document->clearUndoRedoStacks();
+    document->setUndoRedoEnabled(false);
+    document->setPlainText("");
+    setFilePath(filePath);
+    documentStats->refreshStatistics();
+    document->setModified(false);
+    editor->navigateDocument(0);
+    emit documentModifiedChanged(false);
+    sessionStats->startNewSession(documentStats->getWordCount());
+    // the file isn't created yet, so don't add the watcher here
+    // fileWatcher->addPath(filePath);
+    return true;
+}
+
 void DocumentManager::setFilePath(const QString& filePath)
 {
     if (!document->isNew())
@@ -794,50 +824,53 @@ bool DocumentManager::checkSaveChanges()
 
 bool DocumentManager::checkPermissionsBeforeSave()
 {
-    if (document->isReadOnly())
+    if (document->existsOnDisk())
     {
-        int response =
-            MessageBoxHelper::question
-            (
-                parentWidget,
-                tr("%1 is read only.").arg(document->getFilePath()),
-                tr("Overwrite protected file?"),
-                QMessageBox::Yes | QMessageBox::No,
-                QMessageBox::Yes
-            );
-
-        if (QMessageBox::No == response)
+        if (document->isReadOnly())
         {
-            return false;
-        }
-        else
-        {
-            QFile file(document->getFilePath());
-            fileWatcher->removePath(document->getFilePath());
-
-            if (!file.remove())
-            {
-                if (file.setPermissions(QFile::WriteUser | QFile::ReadUser) && file.remove())
-                {
-                    document->setReadOnly(false);
-                    return true;
-                }
-                else
-                {
-                    MessageBoxHelper::critical
+            int response =
+                    MessageBoxHelper::question
                     (
                         parentWidget,
-                        tr("Overwrite failed."),
-                        tr("Please save file to another location.")
-                    );
+                        tr("%1 is read only.").arg(document->getFilePath()),
+                        tr("Overwrite protected file?"),
+                        QMessageBox::Yes | QMessageBox::No,
+                        QMessageBox::Yes
+                        );
 
-                    fileWatcher->addPath(document->getFilePath());
-                    return false;
-                }
+            if (QMessageBox::No == response)
+            {
+                return false;
             }
             else
             {
-                document->setReadOnly(false);
+                QFile file(document->getFilePath());
+                fileWatcher->removePath(document->getFilePath());
+
+                if (!file.remove())
+                {
+                    if (file.setPermissions(QFile::WriteUser | QFile::ReadUser) && file.remove())
+                    {
+                        document->setReadOnly(false);
+                        return true;
+                    }
+                    else
+                    {
+                        MessageBoxHelper::critical
+                                (
+                                    parentWidget,
+                                    tr("Overwrite failed."),
+                                    tr("Please save file to another location.")
+                                    );
+
+                        fileWatcher->addPath(document->getFilePath());
+                        return false;
+                    }
+                }
+                else
+                {
+                    document->setReadOnly(false);
+                }
             }
         }
     }
@@ -852,6 +885,7 @@ QString DocumentManager::saveToDisk
     bool createBackup
 ) const
 {
+    QFileInfo fileInfo(filePath);
     QString err;
 
     if (filePath.isNull() || filePath.isEmpty())
@@ -859,7 +893,8 @@ QString DocumentManager::saveToDisk
         return QObject::tr("Null or empty file path provided for writing.");
     }
 
-    if (createBackup)
+    // create a backup only if the file exists.
+    if (fileInfo.exists() && createBackup)
     {
         backupFile(filePath);
     }

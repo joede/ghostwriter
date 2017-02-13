@@ -1,0 +1,9 @@
+# temporary files
+files
+ghostwriter.debhelper.log
+ghostwriter.postinst.debhelper
+ghostwriter.postrm.debhelper
+ghostwriter.substvars
+
+# temporary directory
+ghostwriter

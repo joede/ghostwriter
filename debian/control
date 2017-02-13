@@ -1,0 +1,27 @@
+Source: ghostwriter
+Section: editors
+Priority: optional
+Maintainer: Joerg Desch <debian@jdesch.de>
+Uploaders: Joerg Desch <debian@jdesch.de>
+Build-Depends: debhelper (>= 9),
+		qtbase5-dev,
+		libqt5webkit5-dev,
+		libqt5svg5-dev,
+		libhunspell-dev,
+		pkg-config
+Standards-Version: 3.9.7
+Homepage: http://wereturtle.github.io/ghostwriter/
+
+Package: ghostwriter
+Architecture: any
+Depends: libqt5concurrent5,
+         libqt5printsupport5,
+         libqt5svg5,
+         ${misc:Depends},
+         ${shlibs:Depends},
+Suggests: pandoc, hunspell-dictionary, myspell-dictionary
+Description: feature rich Markdown editor
+ ghostwriter is a feature rich Markdown editor with many interesting features.
+ It is themable, provides a distraction-free writing environment, includes a
+ live HTML preview, a simple navigation with an outline HUD and it can export
+ to many format using several different processors.

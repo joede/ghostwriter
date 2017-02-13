@@ -1,0 +1,7 @@
+?package(ghostwriter):\
+    needs="x11"\
+    section="Applications/Editors"\
+    title="ghostwriter"\
+    longtitle="Feature rich Markdown editor"\
+    icon="/usr/share/pixmaps/ghostwriter.xpm"\
+    command="/usr/bin/ghostwriter"

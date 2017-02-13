@@ -1,0 +1,6 @@
+ghostwriter (1.4.2-0~jdesch1) jessie-backports; urgency=medium
+
+  * debianize the original upstream. This is the first release
+    done for Debian "Jessie"
+
+ -- Joerg Desch <debian@jdesch.de>  Mon, 13 Feb 2017 10:38:46 +0100

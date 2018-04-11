@@ -1,8 +1,9 @@
-ghostwriter (1.5.0-0~jdesch1) UNRELEASED; urgency=medium
+ghostwriter (1.6.1~jdesch9+1) stretch-backports; urgency=medium
 
   * new upstream release
+  * the package is now built for Stretch!
 
- -- Joerg Desch <debian@jdesch.de>  Mon, 15 May 2017 07:55:21 +0200
+ -- Joerg Desch <debian@jdesch.de>  Wed, 11 Apr 2018 17:47:13 +0200
 
 ghostwriter (1.4.2-0~jdesch1) jessie-backports; urgency=medium
 

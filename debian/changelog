@@ -1,3 +1,9 @@
+ghostwriter (1.5.0-0~jdesch1) UNRELEASED; urgency=medium
+
+  * new upstream release
+
+ -- Joerg Desch <debian@jdesch.de>  Mon, 15 May 2017 07:55:21 +0200
+
 ghostwriter (1.4.2-0~jdesch1) jessie-backports; urgency=medium
 
   * debianize the original upstream. This is the first release

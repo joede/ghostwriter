@@ -1,3 +1,9 @@
+ghostwriter (1.6.2~joede9+1) stretch-backports; urgency=medium
+
+  * new upstream release
+
+ -- Joerg Desch <debian@jdesch.de>  Thu, 05 Jul 2018 09:45:58 +0200
+
 ghostwriter (1.6.1~jdesch9+1) stretch-backports; urgency=medium
 
   * new upstream release

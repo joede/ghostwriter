@@ -28,14 +28,14 @@ isEqual(QT_MAJOR_VERSION, 5) : lessThan(QT_MINOR_VERSION, 2) {
 
 TEMPLATE = app
 
-QT += printsupport webkitwidgets widgets concurrent
+QT += printsupport webkitwidgets widgets concurrent svg
 
 CONFIG -= debug
 CONFIG += warn_on
 
 # Set program version
 isEmpty(VERSION) {
-    VERSION = v1.6.2
+    VERSION = v1.7.1
 }
 DEFINES += APPVERSION='\\"$${VERSION}\\"'
 
@@ -58,43 +58,42 @@ TARGET = ghostwriter
 # Input
 
 macx {
-    QMAKE_INFO_PLIST = resources/Info.plist
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.10
 
-	LIBS += -lz -framework AppKit
+    LIBS += -framework AppKit
 
-	HEADERS += src/spelling/dictionary_provider_nsspellchecker.h
+    HEADERS += src/spelling/dictionary_provider_nsspellchecker.h
 
-	OBJECTIVE_SOURCES += src/spelling/dictionary_provider_nsspellchecker.mm
+    OBJECTIVE_SOURCES += src/spelling/dictionary_provider_nsspellchecker.mm
 } else:win32 {
-	LIBS += -lz
 
-	INCLUDEPATH += src/spelling/hunspell
+    INCLUDEPATH += src/spelling/hunspell
 
-	HEADERS += src/spelling/dictionary_provider_hunspell.h \
-		src/spelling/dictionary_provider_voikko.h
+    HEADERS += src/spelling/dictionary_provider_hunspell.h \
+        src/spelling/dictionary_provider_voikko.h
 
-	SOURCES += src/spelling/dictionary_provider_hunspell.cpp \
-		src/spelling/dictionary_provider_voikko.cpp \
-		src/spelling/hunspell/affentry.cxx \
-		src/spelling/hunspell/affixmgr.cxx \
-		src/spelling/hunspell/csutil.cxx \
-		src/spelling/hunspell/filemgr.cxx \
-		src/spelling/hunspell/hashmgr.cxx \
-		src/spelling/hunspell/hunspell.cxx \
-		src/spelling/hunspell/hunzip.cxx \
-		src/spelling/hunspell/phonet.cxx \
-		src/spelling/hunspell/replist.cxx \
+    SOURCES += src/spelling/dictionary_provider_hunspell.cpp \
+        src/spelling/dictionary_provider_voikko.cpp \
+        src/spelling/hunspell/affentry.cxx \
+        src/spelling/hunspell/affixmgr.cxx \
+        src/spelling/hunspell/csutil.cxx \
+        src/spelling/hunspell/filemgr.cxx \
+        src/spelling/hunspell/hashmgr.cxx \
+        src/spelling/hunspell/hunspell.cxx \
+        src/spelling/hunspell/hunzip.cxx \
+        src/spelling/hunspell/phonet.cxx \
+        src/spelling/hunspell/replist.cxx \
         src/spelling/hunspell/suggestmgr.cxx
 
 } else:unix {
-	CONFIG += link_pkgconfig
-	PKGCONFIG += hunspell
+    CONFIG += link_pkgconfig
+    PKGCONFIG += hunspell
 
-	HEADERS += src/spelling/dictionary_provider_hunspell.h \
-		src/spelling/dictionary_provider_voikko.h
+    HEADERS += src/spelling/dictionary_provider_hunspell.h \
+        src/spelling/dictionary_provider_voikko.h
 
-	SOURCES += src/spelling/dictionary_provider_hunspell.cpp \
-		src/spelling/dictionary_provider_voikko.cpp
+    SOURCES += src/spelling/dictionary_provider_hunspell.cpp \
+        src/spelling/dictionary_provider_voikko.cpp
 }
 
 INCLUDEPATH += src src/spelling
@@ -212,13 +211,30 @@ SOURCES += src/AppMain.cpp \
     src/sundown/markdown.c \
     src/sundown/stack.c
 
-# Allow for updating translations
+# Generate translations
 TRANSLATIONS = $$files(translations/ghostwriter_*.ts)
+qtPrepareTool(LRELEASE, lrelease)
+updateqm.input = TRANSLATIONS
+updateqm.output = $${DESTDIR}/translations/${QMAKE_FILE_BASE}.qm
+updateqm.commands = $$LRELEASE -silent ${QMAKE_FILE_IN} -qm ${QMAKE_FILE_OUT}
+updateqm.CONFIG += no_link target_predeps no_check_exist
+QMAKE_EXTRA_COMPILERS += updateqm
 
 RESOURCES += resources.qrc
 
 macx {
+    # generate property list for macOS
     ICON = resources/mac/ghostwriter.icns
+    QMAKE_INFO_PLIST = resources/mac/Info.plist
+
+    # run macdeployqt after building ghostwriter - copies frameworks & libraries.
+    QMAKE_POST_LINK =  macdeployqt $$sprintf("%1/%2/%3.app", $$OUT_PWD, $$DESTDIR, $$TARGET)
+
+    # copy translations using a helper script.
+    QMAKE_POST_LINK += $$escape_expand(\n\t) $$PWD/resources/mac/macdeploy_helper.sh \
+        $${OUT_PWD}/$${DESTDIR}/$${TARGET}.app/Contents/Resources/translations \
+        $${OUT_PWD}/$${DESTDIR}/translations
+
 } else:win32 {
     RC_FILE = resources/windows/ghostwriter.rc
 } else:unix {
@@ -250,8 +266,9 @@ macx {
     man.files = resources/linux/ghostwriter.1
     man.path = $$PREFIX/share/man/man1
 
-    qm.files = translations/*.qm
+    qm.files = $${DESTDIR}/translations/*.qm
     qm.path = $$DATADIR/ghostwriter/translations
+    qm.CONFIG += no_check_exist
 
     INSTALLS += target icon pixmap desktop appdata man qm
 }

@@ -97,6 +97,7 @@ MainWindow::MainWindow(const QString& filePath, QWidget* parent)
 
     qApp->installEventFilter(this);
 
+    menuBarHeight = 0;
     lastMousePos = QPoint(-1, -1);
 
     appSettings = AppSettings::getInstance();
@@ -623,6 +624,24 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event)
     )
     {
         setOpenHudsVisibility(false);
+    }
+    else if
+    (
+        (
+            (event->type() == QEvent::Leave)
+            || (event->type() == QEvent::WindowDeactivate)
+        )
+        && this->isFullScreen()
+        && appSettings->getHideMenuBarInFullScreenEnabled()
+        && isMenuBarVisible()
+        && ((lastMousePos.y() >= menuBarHeight) || (lastMousePos.y() < 0))
+        && !menuBarMenuActivated
+    )
+    {
+        // Hide menu bar if it is visible in full screen and the focus is
+        // switching to a different application.
+        //
+        hideMenuBar();
     }
     else if (event->type() == QEvent::MouseMove)
     {
@@ -1566,7 +1585,7 @@ void MainWindow::buildMenuBar()
     fileMenu->addSeparator();
     fileMenu->addAction(tr("&Export"), documentManager, SLOT(exportFile()), QKeySequence("CTRL+E"));
     fileMenu->addSeparator();
-    fileMenu->addAction(tr("&Quit"), this, SLOT(quitApplication()), QKeySequence::Quit);
+    fileMenu->addAction(tr("&Quit"), this, SLOT(quitApplication()), QKeySequence::Quit)->setMenuRole(QAction::QuitRole);
 
     QMenu* editMenu = this->menuBar()->addMenu(tr("&Edit"));
     editMenu->addAction(tr("&Undo"), editor, SLOT(undo()), QKeySequence::Undo);
@@ -1639,11 +1658,11 @@ void MainWindow::buildMenuBar()
     settingsMenu->addAction(tr("Application Language..."), this, SLOT(onSetLocale()));
     settingsMenu->addAction(tr("Style Sheets..."), this, SLOT(showStyleSheetManager()));
     settingsMenu->addAction(tr("Preview Options..."), this, SLOT(showPreviewOptions()));
-    settingsMenu->addAction(tr("Preferences..."), this, SLOT(openPreferencesDialog()));
+    settingsMenu->addAction(tr("Preferences..."), this, SLOT(openPreferencesDialog()))->setMenuRole(QAction::PreferencesRole);
 
     QMenu* helpMenu = this->menuBar()->addMenu(tr("&Help"));
-    helpMenu->addAction(tr("&About"), this, SLOT(showAbout()));
-    helpMenu->addAction(tr("About &Qt"), qApp, SLOT(aboutQt()));
+    helpMenu->addAction(tr("&About"), this, SLOT(showAbout()))->setMenuRole(QAction::AboutRole);
+    helpMenu->addAction(tr("About &Qt"), qApp, SLOT(aboutQt()))->setMenuRole(QAction::AboutQtRole);
     helpMenu->addAction(tr("Quick &Reference Guide"), this, SLOT(showQuickReferenceGuide()));
     helpMenu->addAction(tr("Wiki"), this, SLOT(showWikiPage()));
 
@@ -2060,7 +2079,6 @@ void MainWindow::applyTheme()
     }
 
     editor->setAspect(theme.getEditorAspect());
-
     styleSheet = "";
 
     QString corners = "";
@@ -2135,8 +2153,8 @@ void MainWindow::applyTheme()
         theme.getCodeColor(),
         theme.getSpellingErrorColor()
     );
-    editor->setStyleSheet(styleSheet);
 
+    editor->setStyleSheet(styleSheet);
     styleSheet = "";
 
     // Wipe out old background image drawing material.
@@ -2170,8 +2188,11 @@ void MainWindow::applyTheme()
         << " } "
         ;
 
-    setStyleSheet(styleSheet);
-
+    // Do not call this->setStyleSheet().  Calling it more than once in a run
+    // (i.e., when changing a theme) causes a crash in Qt 5.11.  Instead,
+    // change the main window's style sheet via qApp.
+    //
+    qApp->setStyleSheet(styleSheet);
     styleSheet = "";
 
     stream
@@ -2181,7 +2202,6 @@ void MainWindow::applyTheme()
     splitter->setStyleSheet(styleSheet);
 
     applyStatusBarStyle();
-
 
     // Make the word count and focus mode button font size
     // match the menu bar's font size, since on Windows using
@@ -2236,7 +2256,6 @@ void MainWindow::applyTheme()
     previewOptionsButton->setIcon(QIcon(markdownOptionsIcon));
     previewOptionsButton->setIconSize(QSize(menuBarFontWidth, menuBarFontWidth));
 
-
     styleSheet = "";
 
     stream
@@ -2248,7 +2267,6 @@ void MainWindow::applyTheme()
         ;
 
     statusLabel->setStyleSheet(styleSheet);
-
     styleSheet = "";
 
     // Style the HUDs
@@ -2277,14 +2295,29 @@ void MainWindow::applyTheme()
     //
     if (outlineWidget->alternatingRowColors())
     {
+        int primaryRowAlpha = 0;
+        int alternateRowAlpha = 20;
+
+        double hudFgBrightness = ColorHelper::getLuminance(theme.getHudForegroundColor());
+        double hudBgBrightness = ColorHelper::getLuminance(theme.getHudBackgroundColor());
+
+        // If the HUD background color is brighter than the foreground color...
+        if (hudBgBrightness > hudFgBrightness)
+        {
+            primaryRowAlpha = 10;
+            alternateRowAlpha = 50;
+        }
+
         stream << "QListWidget { outline: none; border: 0; padding: 1; background-color: transparent; color: "
                << hudFgString
-               << "; alternate-background-color: rgba(255, 255, 255, 50)"
-               << "; font-size: "
+               << "; alternate-background-color: rgba(255, 255, 255, "
+               << alternateRowAlpha
+               << "); font-size: "
                << hudFontSize
                << "pt } QListWidget::item { padding: 1 0 1 0; margin: 0; background-color: "
-               << "rgba(0, 0, 0, 10)"
-               << " } QListWidget::item:alternate { padding: 1; margin: 0; background-color: "
+               << "rgba(0, 0, 0, "
+               << primaryRowAlpha
+               << ") } QListWidget::item:alternate { padding: 1; margin: 0; background-color: "
                << "rgba(255, 255, 255, 10)"
                << " } "
                << "QListWidget::item:selected { border-radius: "

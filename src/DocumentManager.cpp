@@ -381,6 +381,16 @@ bool DocumentManager::close()
         // signal, because slots accepting this signal may check the
         // new (replacement) document's status.
         //
+        // NOTE: Must set editor's text cursor to the beginning
+        // of the document before clearing the document/editor
+        // of text to prevent a crash in Qt 5.10 on opening or
+        // reloading a file if a file has already been previously
+        // opened in the editor.
+        //
+        QTextCursor cursor(document);
+        cursor.setPosition(0);
+        editor->setTextCursor(cursor);
+
         document->setPlainText("");
         document->clearUndoRedoStacks();
         editor->setReadOnly(false);
@@ -628,7 +638,7 @@ bool DocumentManager::loadFile(const QString& filePath)
 
     // NOTE: Must set editor's text cursor to the beginning
     // of the document before clearing the document/editor
-    // of text to prevent a crash in Qt 5.10. on opening or
+    // of text to prevent a crash in Qt 5.10 on opening or
     // reloading a file if a file has already been previously
     // opened in the editor.
     //
@@ -896,7 +906,7 @@ QString DocumentManager::saveToDisk
         backupFile(filePath);
     }
 
-    if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Truncate))
+    if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
     {
         return outputFile.errorString();
     }
@@ -938,7 +948,7 @@ void DocumentManager::backupFile(const QString& filePath) const
 
     QFile file(filePath);
 
-    if (!file.rename(backupFilePath))
+    if (!file.copy(backupFilePath))
     {
         qCritical("Failed to backup file to %s: %s",
             backupFilePath.toLatin1().data(),

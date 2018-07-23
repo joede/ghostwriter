@@ -125,7 +125,7 @@ ExporterFactory::ExporterFactory()
             addPandocExporter("Pandoc CommonMark", "commonmark", majorVersion, minorVersion);
         }
 
-        addPandocExporter("Pandoc GitHub-flavored Markdown", "markdown_github", majorVersion, minorVersion);
+        addPandocExporter("Pandoc GitHub-flavored Markdown", "markdown_github-hard_line_breaks", majorVersion, minorVersion);
         addPandocExporter("Pandoc PHP Markdown Extra", "markdown_phpextra", majorVersion, minorVersion);
         addPandocExporter("Pandoc MultiMarkdown", "markdown_mmd", majorVersion, minorVersion);
         addPandocExporter("Pandoc Strict", "markdown_strict", majorVersion, minorVersion);
@@ -162,13 +162,49 @@ ExporterFactory::ExporterFactory()
                 .arg(CommandLineExporter::SMART_TYPOGRAPHY_ARG)
                 .arg(CommandLineExporter::OUTPUT_FILE_PATH_VAR)
         );
-        exporter->addFileExportCommand
-        (
-            ExportFormat::ODF,
-            QString("multimarkdown %1 -t odf -o %2")
-                .arg(CommandLineExporter::SMART_TYPOGRAPHY_ARG)
-                .arg(CommandLineExporter::OUTPUT_FILE_PATH_VAR)
-        );
+
+        // Version 6 removed ODF option and replaced it with ODT and FODT.
+        if (majorVersion >= 6)
+        {
+            exporter->addFileExportCommand
+            (
+                ExportFormat::ODT,
+                QString("multimarkdown %1 -t odt -o %2")
+                    .arg(CommandLineExporter::SMART_TYPOGRAPHY_ARG)
+                    .arg(CommandLineExporter::OUTPUT_FILE_PATH_VAR)
+            );
+
+            exporter->addFileExportCommand
+            (
+                ExportFormat::ODF,
+                QString("multimarkdown %1 -t fodt -o %2")
+                    .arg(CommandLineExporter::SMART_TYPOGRAPHY_ARG)
+                    .arg(CommandLineExporter::OUTPUT_FILE_PATH_VAR)
+            );
+        }
+        else
+        {
+            exporter->addFileExportCommand
+            (
+                ExportFormat::ODF,
+                QString("multimarkdown %1 -t odf -o %2")
+                    .arg(CommandLineExporter::SMART_TYPOGRAPHY_ARG)
+                    .arg(CommandLineExporter::OUTPUT_FILE_PATH_VAR)
+            );
+        }
+
+        // Version 6 added EPUB 3
+        if (majorVersion >= 6)
+        {
+            exporter->addFileExportCommand
+            (
+                ExportFormat::EPUBV3,
+                QString("multimarkdown %1 -b -t epub -o %2")
+                    .arg(CommandLineExporter::SMART_TYPOGRAPHY_ARG)
+                    .arg(CommandLineExporter::OUTPUT_FILE_PATH_VAR)
+            );
+        }
+
         exporter->addFileExportCommand
         (
             ExportFormat::LATEX,
@@ -362,7 +398,7 @@ void ExporterFactory::addPandocExporter
         QString("pandoc -f ") +
         inputFormat +
         CommandLineExporter::SMART_TYPOGRAPHY_ARG +
-        " -t %1 --standalone -o " +
+        " -t %1 --standalone --quiet -o " +
         CommandLineExporter::OUTPUT_FILE_PATH_VAR;
 
     exporter->addFileExportCommand

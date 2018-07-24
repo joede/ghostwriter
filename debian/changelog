@@ -1,3 +1,10 @@
+ghostwriter (1.7.1~joede9+2) stretch-backports; urgency=medium
+
+  * add Pandoc version check to ExporterFactory.cpp. The version
+    in Debian Stretch doesn't know the option "--quiet".
+
+ -- Joerg Desch <debian@jdesch.de>  Tue, 24 Jul 2018 11:11:11 +0200
+
 ghostwriter (1.7.1~joede9+1) stretch-backports; urgency=medium
 
   * new upstream release
